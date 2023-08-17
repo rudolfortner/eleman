@@ -1,3 +1,16 @@
+# Sandbox file used for development (might include sensitive data)
+sandbox.cpp
+
+# Mercurial files
+.hg
+.hgignore
+
+# KDevelop
+*.kdev4
+
+build/
+deps/
+
 # Prerequisites
 *.d
 
