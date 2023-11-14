@@ -51,6 +51,22 @@ eleman::ElevationRegion::ElevationRegion(double lat0, double lon0, double lat1, 
 	printf("[ElevationRegion] Creating region from size %d %d\n", sizeLat, sizeLon);
 }
 
+eleman::ElevationRegion::ElevationRegion(const eleman::ElevationRegion& region)
+{
+	this->lat0 = region.lat0;
+	this->lon0 = region.lon0;
+	this->lat1 = region.lat1;
+	this->lon1 = region.lon1;
+
+	this->sizeLat = region.sizeLat;
+	this->sizeLon = region.sizeLon;
+
+	this->elevationData = std::make_shared<Grid<double>>(*region.elevationData.get());
+
+	printf("[ElevationRegion] Creating region from other region\n");
+}
+
+
 double& eleman::ElevationRegion::atGrid(uint32_t x, uint32_t y)
 {
 	return elevationData->at(x, y);

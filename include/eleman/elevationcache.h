@@ -59,9 +59,9 @@ namespace eleman
 
 		// Precaching
 		uint32_t precacheCells(double latitude0, double longitude0, double latitude1, double longitude1);
+		uint32_t precacheRadius(double latitude, double longitude, double radius);
 		uint32_t precacheRegion(Position pos0, Position pos1);
 		uint32_t precacheRegion(double latitude0, double longitude0, double latitude1, double longitude1);
-		uint32_t precacheRadius(double latitude, double longitude, double radius);
 
 		void processCacheMiss(const CacheMiss& cacheMiss);
 		void processMissing(const std::vector<CacheMiss>& missing);
@@ -78,6 +78,9 @@ namespace eleman
 
 		// Cache control
 		void clear();
+		bool clearRadius(double latitude, double longitude, double radius);
+		bool clearRegion(Position pos0, Position pos1);
+		bool clearRegion(double latitude0, double longitude0, double latitude1, double longitude1);
 		void flush();
 
 		// Getters
@@ -122,16 +125,22 @@ namespace eleman
 		ElevationCacheCell(ElevationCache* cache, uint64_t x, uint64_t y, uint16_t cellDivisions, double precision);
 		ElevationCacheCell(ElevationCache* cache, double lat0, double lon0, double lat1, double lon1, double precision);
 
+		// Clear functions
+		bool clearRegion(double latitude0, double longitude0, double latitude1, double longitude1);
+		bool clearRadius(double latitude, double longitude, double radius);
+
+
 		// Precaching functions
 		uint32_t precacheCell();
-		uint32_t precacheRegion(double latitude0, double longitude0, double latitude1, double longitude1);
 		uint32_t precacheRadius(double latitude, double longitude, double radius);
+		uint32_t precacheRegion(double latitude0, double longitude0, double latitude1, double longitude1);
 
 		uint32_t reportMissing(std::vector<CacheMiss>& missing, uint32_t limit = 0) const;
 		uint32_t reportMissingNeighbors(std::vector<CacheMiss>& missing, uint32_t cx, uint32_t cy, uint8_t radius, uint32_t limit = 0) const;
 		// Get functions already specified in ElevationRegion
 		// TODO But what do to in case of cache miss?
 
+		void clearGrid(uint32_t x, uint32_t y);
 		// overwrite grid functions from ElevationRegion
 		double getGrid(uint32_t x, uint32_t y) const override;
 		void setGrid(uint32_t x, uint32_t y, double value) override;

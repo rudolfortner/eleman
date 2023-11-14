@@ -35,6 +35,16 @@ public:
 			this->data[i] = value;
 	}
 
+	Grid(const Grid& grid)
+	{
+		this->width		= grid.width;
+		this->height	= grid.height;
+		this->data		= new ElemType[width * height];
+
+		for(size_t i = 0; i < width * height; i++)
+			this->data[i] = grid.data[i];
+	}
+
 	/**
 	* Destructor
 	*/

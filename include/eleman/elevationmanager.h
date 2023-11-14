@@ -16,7 +16,7 @@ namespace eleman
 {
 
 	const uint8_t VERSION_MAJOR = 0;
-	const uint8_t VERSION_MINOR = 1;
+	const uint8_t VERSION_MINOR = 2;
 	const uint8_t VERSION_PATCH = 0;
 	const std::string VERSION_STRING = std::to_string(VERSION_MAJOR) + "." + std::to_string(VERSION_MINOR) + "." + std::to_string(VERSION_PATCH);
 	const std::string USER_AGENT = "eleman/" + VERSION_STRING;

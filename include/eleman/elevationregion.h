@@ -31,11 +31,12 @@ public:
 	ElevationRegion();
 	ElevationRegion(double lat0, double lon0, double lat1, double lon1, double precision);
 	ElevationRegion(double lat0, double lon0, double lat1, double lon1, uint32_t gridSizeLat, uint32_t gridSizeLon);
+	ElevationRegion(const ElevationRegion& region);
 
     /**
      * Destructor
      */
-    ~ElevationRegion();
+	virtual ~ElevationRegion();
 
 	// Access the raw grid
 	double& atGrid(uint32_t x, uint32_t y);

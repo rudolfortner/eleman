@@ -135,6 +135,24 @@ uint32_t eleman::ElevationCache::precacheCells(double latitude0, double longitud
 	return count;
 }
 
+uint32_t eleman::ElevationCache::precacheRadius(double latitude, double longitude, double radius)
+{
+	double radiusLat = meters2degrees(radius, 0.0);	// Latitude does not change
+	double radiusLon = meters2degrees(radius, latitude);
+
+	uint32_t count = 0;
+	// TODO Edge cases like at -180 longitude
+	std::vector<uint64_t> ids = cellsForRegion(latitude - radiusLat, longitude - radiusLon, latitude + radiusLat, longitude + radiusLon);
+	for(uint64_t& id : ids)
+	{
+		bool wasLoaded = isCellLoaded(id);
+		if(!wasLoaded) loadCell(id);
+		count += getCell(id)->precacheRadius(latitude, longitude, radius);
+		if(!wasLoaded) unloadCell(id);
+	}
+	return count;
+}
+
 uint32_t eleman::ElevationCache::precacheRegion(Position pos0, Position pos1)
 {
 	return precacheRegion(pos0.latitude, pos0.longitude, pos1.latitude, pos1.longitude);
@@ -155,23 +173,6 @@ uint32_t eleman::ElevationCache::precacheRegion(double latitude0, double longitu
 	return count;
 }
 
-uint32_t eleman::ElevationCache::precacheRadius(double latitude, double longitude, double radius)
-{
-	double radiusLat = meters2degrees(radius, 0.0);	// Latitude does not change
-	double radiusLon = meters2degrees(radius, latitude);
-
-	uint32_t count = 0;
-	// TODO Edge cases like at -180 longitude
-	std::vector<uint64_t> ids = cellsForRegion(latitude - radiusLat, longitude - radiusLon, latitude + radiusLat, longitude + radiusLon);
-	for(uint64_t& id : ids)
-	{
-		bool wasLoaded = isCellLoaded(id);
-		if(!wasLoaded) loadCell(id);
-		count += getCell(id)->precacheRadius(latitude, longitude, radius);
-		if(!wasLoaded) unloadCell(id);
-	}
-	return count;
-}
 
 void eleman::ElevationCache::processCacheMiss(const eleman::CacheMiss& cacheMiss)
 {
@@ -327,6 +328,44 @@ uint32_t eleman::ElevationCache::cellsLoaded()
 void eleman::ElevationCache::clear()
 {
 	// TODO Delete all cache files via ElevationIO
+	throw std::runtime_error("[ElevationCache] clear() not supported yet!");
+}
+
+bool eleman::ElevationCache::clearRadius(double latitude, double longitude, double radius)
+{
+	double radiusLat = meters2degrees(radius, 0.0);	// Latitude does not change
+	double radiusLon = meters2degrees(radius, latitude);
+
+	bool success = true;
+	// TODO Edge cases like at -180 longitude
+	std::vector<uint64_t> ids = cellsForRegion(latitude - radiusLat, longitude - radiusLon, latitude + radiusLat, longitude + radiusLon);
+	for(uint64_t& id : ids)
+	{
+		bool wasLoaded = isCellLoaded(id);
+		if(!wasLoaded) loadCell(id);
+		success &= getCell(id)->clearRadius(latitude, longitude, radius);
+		if(!wasLoaded) unloadCell(id);
+	}
+	return success;
+}
+
+bool eleman::ElevationCache::clearRegion(eleman::Position pos0, eleman::Position pos1)
+{
+	return clearRegion(pos0.latitude, pos0.longitude, pos1.latitude, pos1.longitude);
+}
+
+bool eleman::ElevationCache::clearRegion(double latitude0, double longitude0, double latitude1, double longitude1)
+{
+	bool success = true;
+	std::vector<uint64_t> ids = cellsForRegion(latitude0, longitude0, latitude1, longitude1);
+	for(uint64_t& id : ids)
+	{
+		bool wasLoaded = isCellLoaded(id);
+		if(!wasLoaded) loadCell(id);
+		success &= getCell(id)->clearRegion(latitude0, longitude0, latitude1, longitude1);
+		if(!wasLoaded) unloadCell(id);
+	}
+	return success;
 }
 
 void eleman::ElevationCache::flush()
@@ -532,6 +571,51 @@ eleman::ElevationCacheCell::ElevationCacheCell(ElevationCache* cache, double lat
 	printf("Constructing cell from lat/lon (%f - %f / %f - %f)\n", lat0, lat1, lon0, lon1);
 }
 
+bool eleman::ElevationCacheCell::clearRadius(double latitude, double longitude, double radius)
+{
+	printf("Clearing cell (%f - %f / %f - %f) AT %f %f with radius %fm\n", lat0, lat1, lon0, lon1, latitude, longitude, radius);
+
+	if(cache->getManager() == nullptr)
+		printf("FUCK clearRadius\n");
+
+	double radiusLat = meters2degrees(radius, 0.0);	// Latitude does not change
+	double radiusLon = meters2degrees(radius, latitude);
+	printf("radiusLat %f\n", radiusLat);
+	printf("radiusLon %f\n", radiusLon);
+
+	for(uint32_t y = 0; y < sizeLat; y++)
+	{
+		for(uint32_t x = 0; x < sizeLon; x++)
+		{
+			clearGrid(x, y);
+		}
+	}
+	return true;
+}
+
+bool eleman::ElevationCacheCell::clearRegion(double latitude0, double longitude0, double latitude1, double longitude1)
+{
+	printf("Clearing region (%f - %f / %f - %f)\n", latitude0, latitude1, longitude0, longitude1);
+
+	if(cache->getManager() == nullptr)
+		printf("FUCK clearRegion\n");
+
+	for(uint32_t y = 0; y < sizeLat; y++)
+	{
+		for(uint32_t x = 0; x < sizeLon; x++)
+		{
+			// Get lat/lon of cell
+			double lat, lon;
+			gridToPos(y, x, lat, lon);
+
+			// TODO Maybe rethink double precision errors 48.329999999999
+			if(!check_bounds(lat, lon, latitude0, latitude1, longitude0, longitude1)) continue;
+			clearGrid(x, y);
+		}
+	}
+	return true;
+}
+
 
 uint32_t eleman::ElevationCacheCell::precacheCell()
 {
@@ -735,6 +819,14 @@ uint32_t eleman::ElevationCacheCell::reportMissingNeighbors(std::vector<CacheMis
 	return count;
 }
 
+
+void eleman::ElevationCacheCell::clearGrid(uint32_t x, uint32_t y)
+{
+	printf("Clearing data in cell %lu\n", id);
+	ElevationRegion::setGrid(x, y, NAN);
+	statusData->set(x, y, false);
+	dirty = true;
+}
 
 double eleman::ElevationCacheCell::getGrid(uint32_t x, uint32_t y) const
 {
